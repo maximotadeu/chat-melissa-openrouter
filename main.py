@@ -32,7 +32,7 @@ async def chat_with_melissa(request: Request):
     }
 
     data = {
-        "model": "openrouter/pygmalion-2-7b",
+        "model": "gryphe/mythomax-l2-13b",
         "messages": [
             {"role": "system", "content": "Você é Melissa, uma jovem ousada, direta e provocante que conversa em português."},
             {"role": "user", "content": prompt}
