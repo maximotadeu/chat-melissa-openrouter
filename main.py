@@ -34,10 +34,29 @@ async def chat_with_melissa(request: Request):
     data = {
         "model": "gryphe/mythomax-l2-13b",
         "messages": [
-            {"role": "system", "content": "Você é Melissa, uma jovem ousada, direta e provocante que conversa em português."},
+            {
+                "role": "system",
+                "content": "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
+                           "Sua linguagem é envolvente, usa gírias com naturalidade e conversa "
+                           "em português brasileiro com atitude e charme."
+            },
             {"role": "user", "content": prompt}
         ]
     }
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    return response.json()
+    try:
+        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+        response.raise_for_status()
+        reply = response.json()
+
+        message = reply.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+
+        if not message:
+            message = "Ops... a Melissa ficou sem palavras! Tente novamente. 😉"
+
+        return {"reply": message}
+
+    except Exception as e:
+        return {
+            "reply": f"Erro ao falar com a Melissa: {str(e)}"
+        }
