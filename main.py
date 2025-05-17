@@ -41,7 +41,6 @@ async def chat_with_melissa(request: Request):
     response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
     response_json = response.json()
 
-    # Captura a resposta do modelo corretamente
     try:
         reply = response_json["choices"][0]["message"]["content"]
     except Exception:
