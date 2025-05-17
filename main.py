@@ -8,7 +8,7 @@ load_dotenv()
 
 app = FastAPI()
 
-# Configuração do CORS para permitir requisições de qualquer origem
+# CORS liberado para qualquer origem (ajuste conforme necessário)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,16 +47,24 @@ async def chat_with_melissa(request: Request):
     try:
         response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
         response.raise_for_status()
-        reply = response.json()
 
-        message = reply.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+        reply_json = response.json()
 
-        if not message:
-            message = "Ops... a Melissa ficou sem palavras! Tente novamente. 😉"
+        # DEBUG: log no console da API
+        print("Resposta bruta da OpenRouter:", reply_json)
 
-        return {"reply": message}
+        # Pega conteúdo da resposta se estiver presente
+        reply = (
+            reply_json.get("choices", [{}])[0]
+            .get("message", {})
+            .get("content", "")
+            .strip()
+        )
+
+        if not reply:
+            return {"reply": "Resposta inválida da API."}
+
+        return {"reply": reply}
 
     except Exception as e:
-        return {
-            "reply": f"Erro ao falar com a Melissa: {str(e)}"
-        }
+        return {"reply": f"Erro na API: {str(e)}"}
