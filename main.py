@@ -8,7 +8,7 @@ load_dotenv()
 
 app = FastAPI()
 
-# Permitir requisições de qualquer origem (para funcionar no Vercel)
+# Configuração do CORS para permitir requisições de qualquer origem
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,7 +32,7 @@ async def chat_with_melissa(request: Request):
     }
 
     data = {
-        "model": "openrouter/pygmalion-2-7b",  # ou outro modelo da sua preferência
+        "model": "openrouter/pygmalion-2-7b",
         "messages": [
             {"role": "system", "content": "Você é Melissa, uma jovem ousada, direta e provocante que conversa em português."},
             {"role": "user", "content": prompt}
