@@ -8,7 +8,6 @@ load_dotenv()
 
 app = FastAPI()
 
-# CORS liberado para qualquer origem (ajuste conforme necessário)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,39 +31,20 @@ async def chat_with_melissa(request: Request):
     }
 
     data = {
-        "model": "gryphe/mythomax-l2-13b",
+        "model": "openrouter/pygmalion-2-7b:free",
         "messages": [
-            {
-                "role": "system",
-                "content": "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
-                           "Sua linguagem é envolvente, usa gírias com naturalidade e conversa "
-                           "em português brasileiro com atitude e charme."
-            },
+            {"role": "system", "content": "Você é Melissa, uma jovem ousada, direta e provocante que conversa em português."},
             {"role": "user", "content": prompt}
         ]
     }
 
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
+    response_json = response.json()
+
+    # Captura a resposta do modelo corretamente
     try:
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-        response.raise_for_status()
+        reply = response_json["choices"][0]["message"]["content"]
+    except Exception:
+        reply = "Resposta inválida."
 
-        reply_json = response.json()
-
-        # DEBUG: log no console da API
-        print("Resposta bruta da OpenRouter:", reply_json)
-
-        # Pega conteúdo da resposta se estiver presente
-        reply = (
-            reply_json.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-            .strip()
-        )
-
-        if not reply:
-            return {"reply": "Resposta inválida da API."}
-
-        return {"reply": reply}
-
-    except Exception as e:
-        return {"reply": f"Erro na API: {str(e)}"}
+    return {"reply": reply}
