@@ -1,11 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
-# Permitir requisições de qualquer origem
+# Permitir requisições de qualquer origem (para funcionar no Vercel)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,21 +22,22 @@ def root():
     return {"message": "Olá, eu sou a Melissa!"}
 
 @app.post("/chat")
-def chat_with_melissa(message: dict):
-    prompt = message.get("prompt", "")
-    
+async def chat_with_melissa(request: Request):
+    body = await request.json()
+    prompt = body.get("prompt", "")
+
     headers = {
         "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
         "Content-Type": "application/json"
     }
 
-    body = {
-        "model": "openrouter/pygmalion-2-7b",
+    data = {
+        "model": "openrouter/pygmalion-2-7b",  # ou outro modelo da sua preferência
         "messages": [
-            {"role": "system", "content": "Você é Melissa, uma jovem ousada e provocante que conversa em português."},
+            {"role": "system", "content": "Você é Melissa, uma jovem ousada, direta e provocante que conversa em português."},
             {"role": "user", "content": prompt}
         ]
     }
 
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=body)
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
     return response.json()
