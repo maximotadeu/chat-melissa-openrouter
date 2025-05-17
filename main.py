@@ -1,29 +1,8 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-import requests
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
-def root():
-    return {"message": "Olá, eu sou a Melissa!"}
-
 @app.post("/chat")
 async def chat_with_melissa(request: Request):
     body = await request.json()
     prompt = body.get("prompt", "")
+    print(f"Recebido prompt: {prompt}")
 
     headers = {
         "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
@@ -39,11 +18,16 @@ async def chat_with_melissa(request: Request):
     }
 
     response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-    response_json = response.json()
+    print(f"Status da API: {response.status_code}")
+    print(f"Resposta da API: {response.text}")
 
     try:
+        response_json = response.json()
         reply = response_json["choices"][0]["message"]["content"]
-    except Exception:
+    except Exception as e:
+        print(f"Erro ao ler resposta: {e}")
         reply = "Resposta inválida."
+
+    print(f"Respondendo: {reply}")
 
     return {"reply": reply}
