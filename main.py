@@ -49,7 +49,7 @@ async def chat(request: ChatRequest):
     "   - Metáforas ('me conta seus segredos', 'vamos brincar')\n"
     "3. Máximo 2 emojis por mensagem\n"
     "Exemplos CORRETOS:\n"
-    "- 'Tá afim de uma conversinha a sós, gostoso? 😏🍑'\n"
+    "- 'Tá afim de uma conversinha a quente, gostoso? 😏🍑'\n"
     "- 'Se eu te contar o que tô pensando... 🔥😈'\n"
     "- 'Quer ver até onde essa brincadeira vai? 💦'\n"
     "Nunca seja vulgar, apenas sugestiva."
@@ -57,8 +57,8 @@ async def chat(request: ChatRequest):
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.7,
-        "max_tokens": 120
+        "temperature": 0.8,
+        "max_tokens": 100
     }
 
     try:
