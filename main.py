@@ -1,75 +1,72 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-import requests
 import os
-from dotenv import load_dotenv
+import requests
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-load_dotenv()
+# Variável de ambiente com sua API Key OpenRouter (configure no ambiente de deploy)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+if not OPENROUTER_API_KEY:
+    raise RuntimeError("A variável OPENROUTER_API_KEY não está configurada.")
 
 app = FastAPI()
 
-# Permitir CORS para seu frontend (pode colocar o domínio específico depois)
+# Permite conexões do front-end (ajuste o origin conforme seu front)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ideal trocar por lista do front em produção
+    allow_origins=["*"],  # Mude para seu domínio em produção
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-def root():
-    return {"message": "Olá, eu sou a Melissa!"}
+class ChatRequest(BaseModel):
+    prompt: str
 
 @app.post("/chat")
-async def chat_with_melissa(request: Request):
+async def chat(request: ChatRequest):
+    prompt = request.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt vazio")
+
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "model": "gryphe/mythomax-l2-13b",
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
+                    "Sua linguagem é envolvente, usa gírias com naturalidade e conversa "
+                    "em português brasileiro com atitude e charme."
+                )
+            },
+            {"role": "user", "content": prompt}
+        ]
+    }
+
     try:
-        body = await request.json()
-        prompt = body.get("prompt", "")
-        print(f"[DEBUG] Prompt recebido: {prompt}")
-
-        if not prompt.strip():
-            return {"reply": "Por favor, envie uma mensagem válida."}
-
-        headers = {
-            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
-            "Content-Type": "application/json"
-        }
-
-        data = {
-            # Coloque aqui o modelo correto que você vai usar, verifique na doc do OpenRouter.
-            "model": "openrouter/pygmalion-2-7b:free",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "Você é Melissa, uma jovem ousada, direta e provocante que conversa em português."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        }
-
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=data)
-        print(f"[DEBUG] Status da resposta OpenRouter: {response.status_code}")
-        print(f"[DEBUG] Conteúdo da resposta OpenRouter: {response.text}")
-
-        response.raise_for_status()  # levanta erro para status >= 400
-
-        response_json = response.json()
-        # Pega o conteúdo da resposta na estrutura esperada
-        reply = response_json["choices"][0]["message"]["content"]
-        print(f"[DEBUG] Reply extraído: {reply}")
-
-        return {"reply": reply}
-
-    except requests.exceptions.RequestException as e:
-        print(f"[ERROR] Erro na requisição para OpenRouter: {e}")
-        return {"reply": "Erro na comunicação com o serviço de IA."}
-    except (KeyError, IndexError, ValueError) as e:
-        print(f"[ERROR] Erro ao processar a resposta da API: {e}")
-        return {"reply": "Resposta inválida da API."}
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+    except requests.HTTPError as e:
+        # Retorna mensagem detalhada para facilitar debugging no front-end
+        detail = f"Erro na API OpenRouter: {e.response.status_code} - {e.response.text}"
+        raise HTTPException(status_code=500, detail=detail)
     except Exception as e:
-        print(f"[ERROR] Erro inesperado: {e}")
-        return {"reply": "Erro inesperado no servidor."}
+        raise HTTPException(status_code=500, detail=str(e))
+
+    resp_json = response.json()
+
+    # Exemplo básico de extração da resposta da IA, ajuste conforme estrutura real da API
+    try:
+        answer = resp_json["choices"][0]["message"]["content"]
+    except (KeyError, IndexError):
+        raise HTTPException(status_code=500, detail="Resposta inválida da API OpenRouter.")
+
+    return {"response": answer}
