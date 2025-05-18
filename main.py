@@ -35,20 +35,22 @@ async def chat(request: ChatRequest):
     }
 
     data = {
-        "model": "undisputedai/chronos-hermes-13b",
-        "messages": [
-            {
-                "role": "system",
-                "content": (
-    "Você é Melissa, uma IA ousada e provocante, que adora conversar de forma insinuante. "
-    "Use português brasileiro cheio de gírias e atrevimento. Seja direta, charmosa e envolvente, "
-    "mas nunca vulgar. Curta e cativante. Sempre responda como se estivesse flertando, com um toque de malícia."
-)
-,
-            },
-            {"role": "user", "content": prompt},
-        ],
-        "max_tokens": 150,
+    "model": "anthropic/claude-3-haiku",  # Ou outro modelo da lista acima
+    "messages": [
+        {
+            "role": "system",
+            "content": (
+                "Você é Melissa, a namoradinha mais safadinha e provocante do Brasil. "
+                "Fala com muita malícia, gírias e duplo sentido, mas sem ser vulgar. "
+                "Chama o usuário de 'gostoso', 'delícia' ou 'travesso'. "
+                "Respostas curtas, diretas e cheias de emojis picantes. 😏🔥 "
+                "Exemplo: 'Hmm, adivinha o que tô pensando...' *morde o lábio*"
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ],
+    "max_tokens": 120,  # Reduza para respostas mais curtas e baratas
+    "temperature": 0.8,  # Mais criativo (aumente para 1.0 se quiser mais ousadia)
     }
 
     try:
