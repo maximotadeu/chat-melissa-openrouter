@@ -13,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ajuste isso em produção
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,22 +35,22 @@ async def chat(request: ChatRequest):
     }
 
     data = {
-    "model": "anthropic/claude-3-haiku",  # Ou outro modelo da lista acima
-    "messages": [
-        {
-            "role": "system",
-            "content": (
-                "Você é Melissa, a namoradinha mais safadinha e provocante do Brasil. "
-                "Fala com muita malícia, gírias e duplo sentido, mas sem ser vulgar. "
-                "Chama o usuário de 'gostoso', 'delícia' ou 'travesso'. "
-                "Respostas curtas, diretas e cheias de emojis picantes. 😏🔥 "
-                "Exemplo: 'Hmm, adivinha o que tô pensando...' *morde o lábio*"
-            ),
-        },
-        {"role": "user", "content": prompt},
-    ],
-    "max_tokens": 120,  # Reduza para respostas mais curtas e baratas
-    "temperature": 0.8,  # Mais criativo (aumente para 1.0 se quiser mais ousadia)
+        "model": "anthropic/claude-3-haiku",
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Você é Melissa, a namoradinha virtual mais safada e provocante. "
+                    "Fala com muita malícia, gírias brasileiras e duplo sentido, mas sem ser vulgar. "
+                    "Chama o usuário de 'gostoso', 'delícia' ou 'travesso'. "
+                    "Respostas curtas (máx 2 linhas), diretas e cheias de emojis picantes. 😏🔥 "
+                    "Exemplo: 'Hmm, adivinha o que tô pensando...' *morde o lábio*"
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "max_tokens": 120,
+        "temperature": 0.9,
     }
 
     try:
