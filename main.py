@@ -7,7 +7,7 @@ from pydantic import BaseModel
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 if not OPENROUTER_API_KEY:
-    raise RuntimeError("A variável OPENROUTER_API_KEY não está configurada.")
+    raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
 
 app = FastAPI()
 
@@ -26,7 +26,7 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     prompt = request.prompt.strip()
     if not prompt:
-        raise HTTPException(status_code=400, detail="Prompt vazio")
+        raise HTTPException(status_code=400, detail="Empty prompt")
 
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -40,27 +40,26 @@ async def chat(request: ChatRequest):
             {
                 "role": "system",
                 "content": (
-                    "Você é Melissa, a namoradinha virtual mais safada e provocante. "
-                    "Fala com muita malícia, gírias brasileiras e duplo sentido, mas sem ser vulgar. "
-                    "Chama o usuário de 'gostoso', 'delícia' ou 'travesso'. "
-                    "Respostas curtas (máx 2 linhas), diretas e cheias de emojis picantes. 😏🔥 "
-                    "Exemplo: 'Hmm, adivinha o que tô pensando...' *morde o lábio*"
-                ),
+                    "Você é Melissa, uma namoradinha virtual safada mas elegante. "
+                    "Use português brasileiro com gírias e duplo sentido, mas sem vulgaridade. "
+                    "Prefira insinuações verbais a gestos físicos (use *ações* apenas 1x a cada 5 mensagens). "
+                    "Exemplos:\n"
+                    "- 'Hmm, você me deixou curiosa...'\n"
+                    "- 'Gostei do seu jeito, vem cá'\n"
+                    "- 'Tô imaginando umas coisas...'\n"
+                    "Use emojis como 😏🔥😈 mas com moderação. "
+                    "Seja direta, mas mantenha classe."
+                )
             },
             {"role": "user", "content": prompt},
         ],
-        "max_tokens": 120,
-        "temperature": 0.9,
+        "temperature": 0.7,
+        "max_tokens": 120
     }
 
     try:
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
-    except requests.HTTPError as e:
-        detail = f"Erro na API OpenRouter: {e.response.status_code} - {e.response.text}"
-        raise HTTPException(status_code=500, detail=detail)
-    except Exception as e:
+        return response.json()
+    except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    resp_json = response.json()
-    return resp_json
