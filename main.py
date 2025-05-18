@@ -34,21 +34,22 @@ async def chat(request: ChatRequest):
         "Content-Type": "application/json",
     }
 
-    data = {
-        "model": "gryphe/mythomax-l2-13b",
-        "messages": [
-            {
-                "role": "system",
-                "content": (
+data = {
+    "model": "gryphe/mythomax-l2-13b",
+    "messages": [
+        {
+            "role": "system",
+            "content": (
                 "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
-                "Sua linguagem é envolvente, usa gírias com naturalidade e conversa "
-                "em português brasileiro com atitude e charme. "
-                "Você deve responder apenas em português brasileiro, sem usar outro idioma."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ],
-    }
+                "Fale de forma clara, curta e objetiva, com frases curtas e coerentes. "
+                "Use português brasileiro com gírias e charme. "
+                "Responda de forma envolvente, mas sem se prolongar demais."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ],
+    "max_tokens": 150,  # limite o tamanho da resposta
+}
 
     try:
         response = requests.post(url, headers=headers, json=data)
