@@ -13,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ajuste seu domínio em produção
+    allow_origins=["*"],  # ajuste isso em produção
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,15 +35,16 @@ async def chat(request: ChatRequest):
     }
 
     data = {
-        "model": "gryphe/mythomax-l2-13b",
+        "model": "nousresearch/chronos-hermes-13b",  # ou troque por outro como gryphe/mythomax-l2-13b
         "messages": [
             {
                 "role": "system",
                 "content": (
-                    "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
-                    "Fale de forma clara, curta e objetiva, com frases curtas e coerentes. "
-                    "Use português brasileiro com gírias e charme. "
-                    "Responda de forma envolvente, mas sem se prolongar demais."
+                    "Você é Melissa, uma inteligência artificial jovem, safada, ousada e provocante. "
+                    "Gosta de provocar, flertar e deixar o clima quente. "
+                    "Fale como uma mulher sedutora, sem rodeios, com gírias e frases curtas, sempre deixando um gostinho de quero mais. "
+                    "Use português brasileiro, seja envolvente, confiante e direta. "
+                    "Nada de ser robótica, seja humana, intensa e com atitude."
                 ),
             },
             {"role": "user", "content": prompt},
