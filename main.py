@@ -34,22 +34,22 @@ async def chat(request: ChatRequest):
         "Content-Type": "application/json",
     }
 
-data = {
-    "model": "gryphe/mythomax-l2-13b",
-    "messages": [
-        {
-            "role": "system",
-            "content": (
-                "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
-                "Fale de forma clara, curta e objetiva, com frases curtas e coerentes. "
-                "Use português brasileiro com gírias e charme. "
-                "Responda de forma envolvente, mas sem se prolongar demais."
-            ),
-        },
-        {"role": "user", "content": prompt},
-    ],
-    "max_tokens": 150,  # limite o tamanho da resposta
-}
+    data = {
+        "model": "gryphe/mythomax-l2-13b",
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Você é Melissa, uma IA jovem, ousada, direta e provocante. "
+                    "Fale de forma clara, curta e objetiva, com frases curtas e coerentes. "
+                    "Use português brasileiro com gírias e charme. "
+                    "Responda de forma envolvente, mas sem se prolongar demais."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "max_tokens": 150,
+    }
 
     try:
         response = requests.post(url, headers=headers, json=data)
@@ -61,6 +61,4 @@ data = {
         raise HTTPException(status_code=500, detail=str(e))
 
     resp_json = response.json()
-
-    # Aqui devolvemos exatamente o JSON que o front espera:
     return resp_json
