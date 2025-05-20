@@ -35,7 +35,7 @@ async def chat(request: ChatRequest):
     }
 
     data = {
-        "model": "anthropic/claude-3-haiku",
+        "model": "nous-hermes-2-mixtral-8x7b-dpo",
         "messages": [
             {
                 "role": "system",
@@ -58,13 +58,16 @@ async def chat(request: ChatRequest):
             },
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.8,
-        "max_tokens": 100
+        "temperature": 0.9,
+        "max_tokens": 200,
+        "top_p": 0.95,
     }
 
     try:
         response = requests.post(url, headers=headers, json=data)
         response.raise_for_status()
-        return response.json()
+        response_json = response.json()
+        reply = response_json["choices"][0]["message"]["content"]
+        return {"response": reply}
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=str(e))
