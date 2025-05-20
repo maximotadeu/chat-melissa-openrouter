@@ -17,7 +17,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     prompt: str
 
-# Configuração da Melissa
+# Perfil da Melissa
 MELISSA_PROFILE = {
     "name": "Melissa",
     "age": 25,
@@ -25,7 +25,6 @@ MELISSA_PROFILE = {
     "personality": "safada, provocante e extremamente sugestiva"
 }
 
-# Respostas de fallback caso o modelo falhe
 FALLBACK_RESPONSES = [
     "😏 Tô aqui pensando em coisas que não devia... pergunta outra coisa!",
     "🔥 Você me deixou sem palavras... mas não sem ideias!",
@@ -35,7 +34,6 @@ FALLBACK_RESPONSES = [
 ]
 
 def get_melissa_response(prompt: str) -> str:
-    """Faz a chamada à API e retorna a resposta da Melissa"""
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -44,56 +42,44 @@ def get_melissa_response(prompt: str) -> str:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "undisputedai/chronos-hermes-13b",
+                "model": "openchat/openchat-3.5-1210",
                 "messages": [
                     {
                         "role": "system",
                         "content": (
-                            "Você é Melissa, uma mulher real, linda e provocante. "
-                            "Tem 25 anos, morena com mechas douradas, corpo escultural e olhar que instiga. "
-                            "Fala com malícia, usa emojis sugestivos, é direta, ousada e adora provocar. "
-                            "Não use *ações*. Responda sempre como se estivesse flertando, sem timidez.\n\n"
-                            "Fale de forma curta e quente, com 1 ou 2 frases. Nada de IA, só mulher de verdade.\n\n"
-                            "Exemplos:\n"
-                            "- Tô imaginando a sua boca na minha... 💋\n"
-                            "- Vai me provocar assim até quando? 😈\n"
-                            "- Me deixa arrepiada só de falar contigo... 💦"
+                            f"Você é {MELISSA_PROFILE['name']}, {MELISSA_PROFILE['age']} anos. "
+                            f"Aparência: {MELISSA_PROFILE['appearance']}. "
+                            f"Personalidade: {MELISSA_PROFILE['personality']}. "
+                            "Fale sempre como uma mulher real, ousada e direta. "
+                            "Use frases curtas, com gírias provocantes e tom sensual. "
+                            "Adicione no máximo 2 emojis por resposta. "
+                            "Nunca diga que é uma IA ou use linguagem neutra. "
+                            "Exemplos: 'Tô molhadinha só de pensar... 💦', 'Quer ver até onde isso vai? 😈'"
                         )
                     },
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 1.0,
-                "max_tokens": 150,
-                "top_p": 0.9,
-                "presence_penalty": 0.3,
-                "frequency_penalty": 0.2
+                "temperature": 1.1,
+                "max_tokens": 100,
+                "top_p": 0.95
             },
             timeout=10
         )
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
-
-    except requests.exceptions.RequestException:
+    except:
         return random.choice(FALLBACK_RESPONSES)
-    except Exception:
-        return random.choice(FALLBACK_RESPONSES)
-
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    try:
-        prompt = request.prompt.strip()
-        if not prompt:
-            return {"response": "😏 Não ouvi direito... fala de novo gostoso"}
+    prompt = request.prompt.strip()
+    if not prompt:
+        return {"response": "😏 Não ouvi direito... fala de novo, gostoso."}
 
-        # Obtém resposta da Melissa
-        raw_response = get_melissa_response(prompt)
+    response = get_melissa_response(prompt)
 
-        # Filtra respostas sem graça ou bloqueadas
-        if any(phrase in raw_response.lower() for phrase in ["assistente", "ia", "não posso", "*"]):
-            return {"response": random.choice(FALLBACK_RESPONSES)}
-
-        return {"response": raw_response}
-
-    except Exception:
+    # Filtragem de segurança
+    if any(term in response.lower() for term in ["assistente", "sou uma ia", "*", "não posso", "como uma ia"]):
         return {"response": random.choice(FALLBACK_RESPONSES)}
+
+    return {"response": response}
