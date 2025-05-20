@@ -1,7 +1,7 @@
-fastapi
-uvicorn
-requests
-python-dotenv
-python-jose[cryptography]  # Para autenticação JWT (futura implementação)
-passlib  # Para hash de senhas (futura implementação)
+fastapi==0.109.0
+uvicorn==0.27.0
+requests==2.31.0
+python-dotenv==1.0.0
+python-jose[cryptography]==3.3.0
+passlib==1.7.4
 psycopg2-binary  # Para PostgreSQL (futura implementação)
