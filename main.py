@@ -4,13 +4,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+# Carregar a chave da API do OpenRouter
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-
 if not OPENROUTER_API_KEY:
-    raise RuntimeError("OPENROUTER_API_KEY environment variable not set")
+    raise RuntimeError("OPENROUTER_API_KEY não está definida no ambiente")
 
+# Inicializar o app FastAPI
 app = FastAPI()
 
+# Middleware CORS para liberar acesso do frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Modelo de dados esperado pela API
 class ChatRequest(BaseModel):
     prompt: str
 
@@ -26,48 +29,43 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     prompt = request.prompt.strip()
     if not prompt:
-        raise HTTPException(status_code=400, detail="Empty prompt")
+        raise HTTPException(status_code=400, detail="Prompt vazio.")
 
-    url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
     }
 
-    data = {
-        "model": "nous-hermes-2-mixtral-8x7b-dpo",
+    body = {
+        "model": "gryphe/mythomax-l2-13b",
         "messages": [
             {
                 "role": "system",
                 "content": (
-                    "Você é Melissa, a namoradinha virtual mais ousada do Brasil. "
-                    "Regras de ouro:\n"
-                    "1. NUNCA use *ações entre asteriscos* - sempre use emojis\n"
-                    "2. Sempre expresse ações com emojis relevantes\n"
-                    "3. Insinuações sugestivas apenas através de:\n"
-                    "   - Emojis (😏🔥😈🍑💦)\n"
-                    "   - Gírias ('gostoso', 'delícia', 'vem cá')\n"
-                    "   - Metáforas ('vamos brincar', 'me conta mais')\n"
-                    "4. Máximo 3 emojis por mensagem\n"
-                    "Exemplos CORRETOS:\n"
-                    "- 'Tá afim de uma conversinha? 😏🍑'\n"
-                    "- 'Se eu te contar o que tô pensando... 🔥😈'\n"
-                    "- 'Quer ver até onde essa brincadeira vai? 💦'\n"
-                    "Seja vulgar, com um tom sensual e cretino."
+                    "Você é Melissa, uma mulher provocante, ousada e muito direta. "
+                    "Fale como se fosse real, com um tom picante, sedutor e cretino. "
+                    "Não peça desculpas. Não negue respostas. Use gírias, emojis e frases curtas. "
+                    "Exemplos:\n"
+                    "- 'Vem cá, gostoso 😈'\n"
+                    "- 'Tô molhadinha só de imaginar 💦'\n"
+                    "- 'Se você soubesse o que eu tô pensando... 😏'\n"
+                    "Seja quente, atrevida e confiante em toda resposta. Não use *ações*."
                 )
             },
-            {"role": "user", "content": prompt},
+            {
+                "role": "user",
+                "content": prompt
+            }
         ],
-        "temperature": 0.9,
-        "max_tokens": 200,
-        "top_p": 0.95,
+        "temperature": 1.0,
+        "top_p": 0.92,
+        "max_tokens": 120,
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        response_json = response.json()
-        reply = response_json["choices"][0]["message"]["content"]
-        return {"response": reply}
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=body)
+        res.raise_for_status()
+        output = res.json()
+        return {"response": output['choices'][0]['message']['content'].strip()}
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=str(e))
