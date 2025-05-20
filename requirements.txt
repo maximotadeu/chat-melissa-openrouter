@@ -2,3 +2,6 @@ fastapi
 uvicorn
 requests
 python-dotenv
+python-jose[cryptography]  # Para autenticação JWT (futura implementação)
+passlib  # Para hash de senhas (futura implementação)
+psycopg2-binary  # Para PostgreSQL (futura implementação)
