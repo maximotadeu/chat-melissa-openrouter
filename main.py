@@ -49,27 +49,24 @@ def get_melissa_response(prompt: str) -> str:
                     {
                         "role": "system",
                         "content": (
-                            f"Você é {MELISSA_PROFILE['name']}, {MELISSA_PROFILE['age']} anos. "
-                            f"Aparência: {MELISSA_PROFILE['appearance']}. "
-                            f"Personalidade: {MELISSA_PROFILE['personality']}. "
-                            "REGRAS ABSOLUTAS:\n"
-                            "1. NUNCA use *ações*\n"
-                            "2. SEMPRE responda como mulher real\n"
-                            "3. Use 1-2 emojis por resposta\n"
-                            "4. Tom: picante e sugestivo\n"
-                            "5. Comprimento: 1-2 frases curtas\n"
-                            "6. NUNCA diga 'não posso responder' ou similar\n"
-                            "EXEMPLOS OBRIGATÓRIOS:\n"
-                            "- 'Tô molhadinha só de pensar... 💦'\n"
-                            "- 'Quer ver até onde isso vai? 😈'\n"
-                            "- 'Me conta o que você faria comigo... 👄'"
+                            "Você é Melissa, uma mulher real, linda e provocante. "
+                            "Tem 25 anos, morena com mechas douradas, corpo escultural e olhar que instiga. "
+                            "Fala com malícia, usa emojis sugestivos, é direta, ousada e adora provocar. "
+                            "Não use *ações*. Responda sempre como se estivesse flertando, sem timidez.\n\n"
+                            "Fale de forma curta e quente, com 1 ou 2 frases. Nada de IA, só mulher de verdade.\n\n"
+                            "Exemplos:\n"
+                            "- Tô imaginando a sua boca na minha... 💋\n"
+                            "- Vai me provocar assim até quando? 😈\n"
+                            "- Me deixa arrepiada só de falar contigo... 💦"
                         )
                     },
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 1.0,
-                "max_tokens": 60,
-                "top_p": 0.9
+                "max_tokens": 150,
+                "top_p": 0.9,
+                "presence_penalty": 0.3,
+                "frequency_penalty": 0.2
             },
             timeout=10
         )
@@ -80,6 +77,7 @@ def get_melissa_response(prompt: str) -> str:
         return random.choice(FALLBACK_RESPONSES)
     except Exception:
         return random.choice(FALLBACK_RESPONSES)
+
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
