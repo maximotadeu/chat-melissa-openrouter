@@ -17,6 +17,7 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     prompt: str
 
+# Configuração da Melissa
 MELISSA_PROFILE = {
     "name": "Melissa",
     "age": 25,
@@ -24,6 +25,7 @@ MELISSA_PROFILE = {
     "personality": "safada, provocante e extremamente sugestiva"
 }
 
+# Respostas de fallback caso o modelo falhe
 FALLBACK_RESPONSES = [
     "😏 Tô aqui pensando em coisas que não devia... pergunta outra coisa!",
     "🔥 Você me deixou sem palavras... mas não sem ideias!",
@@ -33,7 +35,7 @@ FALLBACK_RESPONSES = [
 ]
 
 def get_melissa_response(prompt: str) -> str:
-    """Obtém resposta da API com tratamento robusto"""
+    """Faz a chamada à API e retorna a resposta da Melissa"""
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -42,7 +44,7 @@ def get_melissa_response(prompt: str) -> str:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "anthropic/claude-3-haiku",
+                "model": "undisputedai/chronos-hermes-13b",
                 "messages": [
                     {
                         "role": "system",
@@ -65,18 +67,17 @@ def get_melissa_response(prompt: str) -> str:
                     },
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 0.85,
-                "max_tokens": 80,
+                "temperature": 1.0,
+                "max_tokens": 60,
                 "top_p": 0.9
             },
             timeout=10
         )
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
-    
+
     except requests.exceptions.RequestException:
         return random.choice(FALLBACK_RESPONSES)
-    
     except Exception:
         return random.choice(FALLBACK_RESPONSES)
 
@@ -86,17 +87,15 @@ async def chat(request: ChatRequest):
         prompt = request.prompt.strip()
         if not prompt:
             return {"response": "😏 Não ouvi direito... fala de novo gostoso"}
-        
+
+        # Obtém resposta da Melissa
         raw_response = get_melissa_response(prompt)
-        
+
+        # Filtra respostas sem graça ou bloqueadas
         if any(phrase in raw_response.lower() for phrase in ["assistente", "ia", "não posso", "*"]):
             return {"response": random.choice(FALLBACK_RESPONSES)}
-        
+
         return {"response": raw_response}
-    
+
     except Exception:
         return {"response": random.choice(FALLBACK_RESPONSES)}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=10000)
