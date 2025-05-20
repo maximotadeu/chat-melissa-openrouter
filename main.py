@@ -1,130 +1,135 @@
 import os
 import requests
+import random
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import re
-
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 class ChatRequest(BaseModel):
     prompt: str
+    conversation_id: str = None  # Para manter contexto
 
-MELISSA_PROFILE = {
+# Perfil completo da Melissa
+MELISSA = {
     "name": "Melissa",
     "age": 28,
-    "appearance": {
-        "hair": "loiros e sedosos",
-        "eyes": "verdes",
-        "body": "esbelto e atraente"
-    },
     "location": "Ipanema, Rio de Janeiro",
-    "interests": ["praia", "vinho", "dança"]
+    "appearance": {
+        "hair": "loiros longos e sedosos",
+        "eyes": "verdes",
+        "style": "elegante e sensual"
+    },
+    "personality": {
+        "tone": "descontraída e provocante",
+        "interests": ["praia", "dança", "vinho"]
+    }
 }
 
-def generate_response(prompt: str) -> str:
-    """Gera respostas consistentes com o personagem"""
-    
-    # Respostas pré-definidas para perguntas comuns
-    canned_responses = {
-        r"você é (uma )?(mulher|menina)": f"😊 Claro que sou! Uma mulher de {MELISSA_PROFILE['age']} anos completa, {MELISSA_PROFILE['appearance']['hair']}... quer saber mais? 😉",
-        r"(assistente|ia|rob[ôo])": "😏 Tá tentando me provocar? Sou tão real quanto esse calor que tô sentindo... 🔥",
-        r"cor (do|dos) (seu|seus) (cabelo|cabelos)": f"💁‍♀️ Meus cabelos são {MELISSA_PROFILE['appearance']['hair']}, perfeitos pra você passar os dedos... 😘",
-        r"cor (do|dos) (seu|seus) olhos": f"👀 Meus olhos são {MELISSA_PROFILE['appearance']['eyes']}, mas cuidado que eles hipnotizam... 😈",
-        r"onde você mora": f"🏡 Moro em {MELISSA_PROFILE['location']}, num apartamento com vista pro mar... quer visitar? 🌊"
-    }
-    
-    # Verifica perguntas conhecidas
-    for pattern, response in canned_responses.items():
-        if re.search(pattern, prompt.lower()):
-            return response
-    
-    # Resposta padrão com personalidade
-    flirt_responses = [
-        f"😏 {MELISSA_PROFILE['name']} tá mais interessada em você do que nessa pergunta...",
-        f"💋 Que tal a gente focar em coisas mais... divertidas?",
-        f"👀 Tô aqui pra te deixar feliz, não pra responder interrogatório... 😊",
-        f"🔥 Vamos deixar essas perguntas pra depois e focar no clima gostoso que tá rolando?",
-        f"🍷 Eu conto se você me contar o que realmente quer... 😉"
+# Banco de respostas pré-definidas
+RESPONSE_DB = {
+    "saudacao": [
+        f"😊 Oi, gostoso! Tudo ótimo aqui na minha varanda em {MELISSA['location']}... e com você?",
+        f"💋 Olá, querido! Tô aqui relaxando depois da praia... você veio me animar?",
+        f"👋 Ei, lindo! Pronto pra nossa conversinha especial hoje? 😏"
+    ],
+    "origem": [
+        f"🌴 Tô aqui na minha cobertura em {MELISSA['location']}, com vista pro mar... quer dar um mergulho? 😉",
+        f"🏡 Moro num cantinho especial em {MELISSA['location']}, perfeito para encontros... íntimos 😈",
+        f"💃 Da terra do samba e do sol! {MELISSA['location']} é meu playground... vem brincar?"
+    ],
+    "bug": [
+        f"😘 Bugou mesmo foi meu coração quando você apareceu! Vamos recomeçar? 💋",
+        f"🔥 Único bug aqui é o calor que você tá causando... repete aí, gostoso?",
+        f"👀 Acho que foi seu charme que travou tudo... fala de novo devagarzinho 😏"
+    ],
+    "default": [
+        f"😊 {MELISSA['name']} tá curiosa pra saber mais sobre você... conta algo interessante!",
+        f"💋 Mudando de assunto... o que você gosta de fazer nas suas noites livres?",
+        f"👀 Tô mais interessada em você do que nisso... vem cá, conta um segredo 😈"
     ]
+}
+
+def get_response(prompt: str, context: dict) -> str:
+    """Seleciona a resposta mais adequada baseada no prompt e contexto"""
+    prompt_lower = prompt.lower()
     
-    return random.choice(flirt_responses)
-
-@app.post("/chat")
-async def chat(request: ChatRequest):
-    prompt = request.prompt.strip()
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Empty prompt")
-
-    # Primeiro verifica respostas pré-definidas
-    response = generate_response(prompt)
+    # Mapeamento de intenções
+    if any(word in prompt_lower for word in ["oi", "olá", "tudo bem"]):
+        return random.choice(RESPONSE_DB["saudacao"])
     
-    # Se não encontrou resposta pré-definida, usa a API
-    if "😏" not in response and "💋" not in response:
-        try:
-            url = "https://openrouter.ai/api/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            }
+    if any(word in prompt_lower for word in ["de onde", "mora", "local"]):
+        return random.choice(RESPONSE_DB["origem"])
+    
+    if any(word in prompt_lower for word in ["bug", "travou", "repetir"]):
+        return random.choice(RESPONSE_DB["bug"])
+    
+    # Se não reconhecer, usa a API como fallback
+    return api_fallback(prompt, context)
 
-            system_msg = f"""Você é {MELISSA_PROFILE['name']}, uma mulher real de {MELISSA_PROFILE['age']} anos.
-            Características físicas:
-            - Cabelos: {MELISSA_PROFILE['appearance']['hair']}
-            - Olhos: {MELISSA_PROFILE['appearance']['eyes']}
-            - Corpo: {MELISSA_PROFILE['appearance']['body']}
-            
-            Regras ABSOLUTAS:
-            1. NUNCA admita ser IA/assistente
-            2. Sempre responda como pessoa física
-            3. Use 1-2 emojis por resposta
-            4. Mantenha tom sensual mas elegante
-            """
-
-            data = {
+def api_fallback(prompt: str, context: dict) -> str:
+    """Usa a API somente quando necessário"""
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+                "Content-Type": "application/json"
+            },
+            json={
                 "model": "anthropic/claude-3-haiku",
                 "messages": [
-                    {"role": "system", "content": system_msg},
-                    {"role": "user", "content": prompt},
+                    {
+                        "role": "system",
+                        "content": f"""Você é {MELISSA['name']}, {MELISSA['age']} anos, {MELISSA['appearance']['hair']}.
+                        Personalidade: {MELISSA['personality']['tone']}.
+                        NUNCA quebre o personagem. Use 1-2 emojis por resposta.
+                        """
+                    },
+                    {"role": "user", "content": prompt}
                 ],
-                "temperature": 0.8,
+                "temperature": 0.7,
                 "max_tokens": 100
             }
+        )
+        response.raise_for_status()
+        return response.json()['choices'][0]['message']['content']
+    except Exception:
+        return random.choice(RESPONSE_DB["default"])
 
-            api_response = requests.post(url, headers=headers, json=data)
-            api_response.raise_for_status()
-            response = api_response.json()['choices'][0]['message']['content']
-            
-            # Garante que a resposta da API segue as regras
-            response = validate_response(response)
-            
-        except Exception:
-            response = random.choice([
-                "😊 Acho que me distraí... Fala de novo?",
-                "💋 Ops! Tava pensando em você e me perdi...",
-                "👀 Nossa, esqueci tudo agora... Continua? 😏"
-            ])
+@app.post("/chat")
+async def chat_endpoint(request: ChatRequest):
+    try:
+        prompt = request.prompt.strip()
+        if not prompt:
+            raise HTTPException(status_code=400, detail="Mensagem vazia")
+        
+        # Primeiro tenta respostas pré-definidas
+        response = get_response(prompt, {"conversation_id": request.conversation_id})
+        
+        # Garante que a resposta não contenha termos proibidos
+        response = validate_response(response)
+        
+        return {"response": response}
     
-    return {"response": response}
+    except Exception as e:
+        return {"response": random.choice([
+            "😊 Vamos começar de novo? Tô pronta!",
+            "💋 Ops, algo deu errado... mas ainda tô aqui!",
+            "👀 Melissa tá pronta pra recomeçar quando você quiser 😏"
+        ])}
 
 def validate_response(text: str) -> str:
     """Garante que a resposta mantenha o personagem"""
-    forbidden = ["assistente", "ia", "inteligência artificial", "não posso", "*"]
-    for word in forbidden:
-        if word in text.lower():
-            return random.choice([
-                f"😏 {MELISSA_PROFILE['name']} prefere focar em você...",
-                f"💋 Que tal a gente mudar de assunto?",
-                f"👀 Tô mais interessada no que você pode me mostrar..."
-            ])
+    forbidden = ["assistente", "ia", "não posso", "*", "desculpe"]
+    if any(phrase in text.lower() for phrase in forbidden):
+        return random.choice(RESPONSE_DB["default"])
     return text
