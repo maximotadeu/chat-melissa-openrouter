@@ -17,7 +17,6 @@ app.add_middleware(
 class ChatRequest(BaseModel):
     prompt: str
 
-# Configuração do personagem Melissa
 MELISSA_PROFILE = {
     "name": "Melissa",
     "age": 25,
@@ -66,11 +65,11 @@ def get_melissa_response(prompt: str) -> str:
                     },
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 1.0
-                "max_tokens": 60,
+                "temperature": 0.85,
+                "max_tokens": 80,
                 "top_p": 0.9
             },
-            timeout=10  # Timeout de 10 segundos
+            timeout=10
         )
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
@@ -88,10 +87,8 @@ async def chat(request: ChatRequest):
         if not prompt:
             return {"response": "😏 Não ouvi direito... fala de novo gostoso"}
         
-        # Obtém e filtra a resposta
         raw_response = get_melissa_response(prompt)
         
-        # Filtros de segurança
         if any(phrase in raw_response.lower() for phrase in ["assistente", "ia", "não posso", "*"]):
             return {"response": random.choice(FALLBACK_RESPONSES)}
         
@@ -99,3 +96,7 @@ async def chat(request: ChatRequest):
     
     except Exception:
         return {"response": random.choice(FALLBACK_RESPONSES)}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=10000)
