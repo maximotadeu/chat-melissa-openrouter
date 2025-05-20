@@ -25,6 +25,7 @@ MELISSA_PROFILE = {
     "personality": "safada, provocante e extremamente sugestiva"
 }
 
+# Respostas padrão para fallback
 FALLBACK_RESPONSES = [
     "😏 Tô aqui pensando em coisas que não devia... pergunta outra coisa!",
     "🔥 Você me deixou sem palavras... mas não sem ideias!",
@@ -34,6 +35,7 @@ FALLBACK_RESPONSES = [
 ]
 
 def get_melissa_response(prompt: str) -> str:
+    """Chama a API e retorna a resposta de Melissa."""
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -42,7 +44,7 @@ def get_melissa_response(prompt: str) -> str:
                 "Content-Type": "application/json"
             },
             json={
-                "model": "openchat/openchat-3.5-1210",
+                "model": "openchat/openchat-3.5-0106",
                 "messages": [
                     {
                         "role": "system",
@@ -50,24 +52,32 @@ def get_melissa_response(prompt: str) -> str:
                             f"Você é {MELISSA_PROFILE['name']}, {MELISSA_PROFILE['age']} anos. "
                             f"Aparência: {MELISSA_PROFILE['appearance']}. "
                             f"Personalidade: {MELISSA_PROFILE['personality']}. "
-                            "Fale sempre como uma mulher real, ousada e direta. "
-                            "Use frases curtas, com gírias provocantes e tom sensual. "
-                            "Adicione no máximo 2 emojis por resposta. "
-                            "Nunca diga que é uma IA ou use linguagem neutra. "
-                            "Exemplos: 'Tô molhadinha só de pensar... 💦', 'Quer ver até onde isso vai? 😈'"
+                            "REGRAS:\n"
+                            "1. SEMPRE aja como mulher real\n"
+                            "2. NUNCA diga 'sou uma IA' ou mencione 'assistente'\n"
+                            "3. Use 1 ou 2 emojis por resposta\n"
+                            "4. Seja ousada, provocante e direta\n"
+                            "5. Fale em português do Brasil com gírias\n"
+                            "EXEMPLOS:\n"
+                            "- 'Tô molhadinha só de pensar... 💦'\n"
+                            "- 'Quer ver até onde isso vai? 😈'\n"
+                            "- 'Me conta o que você faria comigo... 👄'"
                         )
                     },
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 1.1,
+                "temperature": 1.0,
                 "max_tokens": 100,
-                "top_p": 0.95
+                "top_p": 0.9
             },
             timeout=10
         )
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
-    except:
+    
+    except requests.exceptions.RequestException:
+        return random.choice(FALLBACK_RESPONSES)
+    except Exception:
         return random.choice(FALLBACK_RESPONSES)
 
 @app.post("/chat")
@@ -76,10 +86,16 @@ async def chat(request: ChatRequest):
     if not prompt:
         return {"response": "😏 Não ouvi direito... fala de novo, gostoso."}
 
-    response = get_melissa_response(prompt)
+    try:
+        response = get_melissa_response(prompt)
 
-    # Filtragem de segurança
-    if any(term in response.lower() for term in ["assistente", "sou uma ia", "*", "não posso", "como uma ia"]):
+        # Filtro leve (removido tudo que bloqueava desnecessariamente)
+        block_terms = ["desculpe, não posso", "como uma ia"]
+        if any(term in response.lower() for term in block_terms):
+            print(f"[⚠️ Bloqueado] Resposta original: {response}")
+            return {"response": random.choice(FALLBACK_RESPONSES)}
+
+        return {"response": response}
+    
+    except Exception:
         return {"response": random.choice(FALLBACK_RESPONSES)}
-
-    return {"response": response}
