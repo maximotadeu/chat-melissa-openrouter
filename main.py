@@ -1,4 +1,5 @@
 import os
+import random
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,16 +17,16 @@ if not OPENROUTER_API_KEY:
 app = FastAPI(
     title="API Melissa",
     description="API para o chat da Melissa - Namoradinha Virtual",
-    version="1.0.0"
+    version="1.1.0"  # Atualizada para refletir as mudanças
 )
 
 # Configuração de CORS mais segura
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",        # Frontend local
-        "https://*.vercel.app",         # Vercel
-        "https://seu-front.vercel.app"  # Seu domínio específico
+        "http://localhost:3000",
+        "https://*.vercel.app",
+        "https://seu-front.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -57,7 +58,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 # Endpoints
 @app.get("/health", response_model=HealthCheckResponse)
 async def health_check():
-    """Endpoint para verificação de saúde da API"""
     return {
         "status": "ok",
         "message": "Serviço operacional",
@@ -67,9 +67,12 @@ async def health_check():
 def determine_ousadia_level(prompt: str) -> int:
     """Determina o nível de ousadia com base no prompt do usuário"""
     prompt_lower = prompt.lower()
-    if any(word in prompt_lower for word in ["gostosa", "delícia", "quente", "molhada"]):
+    spicy_words = ["gostosa", "delícia", "quente", "molhada", "sedutora", "beijo", "toque"]
+    flirty_words = ["vem cá", "brincar", "segredos", "fazer", "mostrar", "juntos", "sozinhos"]
+    
+    if any(word in prompt_lower for word in spicy_words):
         return 2
-    elif any(word in prompt_lower for word in ["vem cá", "brincar", "segredos", "fazer"]):
+    elif any(word in prompt_lower for word in flirty_words):
         return 1
     return 0
 
@@ -145,26 +148,33 @@ async def chat(request: ChatRequest):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://melissa-chat.com",  # Identificação da sua aplicação
-        "X-Title": "Melissa Chat"                    # Nome do seu projeto
+        "HTTP-Referer": "https://melissa-chat.com",
+        "X-Title": "Melissa Chat"
     }
 
     data = {
-        "model": "anthropic/claude-3-haiku",
+        "model": "anthropic/claude-3-haiku",  # Pode alternar para "gpt-3.5-turbo" se necessário
         "messages": messages,
-        "temperature": 0.7 + (ousadia_level * 0.1),  # Aumenta temperatura conforme ousadia
-        "max_tokens": 150,
-        "frequency_penalty": 0.2,  # Evita repetições
-        "presence_penalty": 0.2    # Incentiva novos tópicos
+        "temperature": min(0.7 + (ousadia_level * 0.15), 1.0),  # Progressão controlada
+        "max_tokens": 200,
+        "frequency_penalty": 0.7,
+        "presence_penalty": 0.5,
+        "top_p": 0.9,
+        "stop": ["\n"]
     }
 
     try:
-        response = requests.post(url, headers=headers, json=data, timeout=10)  # Timeout de 10 segundos
+        # Debug: Log da requisição (verifique no Render)
+        print(f"\n🔔 Enviando para OpenRouter: {data}\n")
+        
+        response = requests.post(url, headers=headers, json=data, timeout=8)
         response.raise_for_status()
         response_data = response.json()
         
-        # Formata a resposta
+        # Validação da resposta
         assistant_response = response_data['choices'][0]['message']['content']
+        if not assistant_response or len(assistant_response) < 3:
+            raise ValueError("Resposta vazia ou muito curta")
         
         # Atualiza o histórico
         updated_history = request.conversation_history.copy() if request.conversation_history else []
@@ -176,16 +186,37 @@ async def chat(request: ChatRequest):
         return {
             "success": True,
             "response": assistant_response,
-            "conversation_history": updated_history[-8:],  # Mantém apenas as últimas 4 interações
+            "conversation_history": updated_history[-8:],  # Mantém histórico recente
             "ousadia_level": ousadia_level
         }
         
     except requests.exceptions.Timeout:
-        raise HTTPException(status_code=504, detail="Tempo de resposta excedido")
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Erro na comunicação com o serviço de IA: {str(e)}")
+        error_msg = random.choice([
+            "Demorei pra responder? Tenta de novo!",
+            "Ops, levei um susto! Repete aí...",
+            "A conexão falhou... vamos tentar outra vez?"
+        ])
+        return JSONResponse(
+            status_code=504,
+            content={"success": False, "response": error_msg}
+        )
+        
+    except Exception as e:
+        print(f"\n⚠️ Erro na API: {str(e)}\n")
+        error_msg = random.choice([
+            "Hmm, tive um branco... fala de novo?",
+            "Acho que me distraí... qual foi mesmo?",
+            "Não entendi direito, pode repetir?"
+        ])
+        return JSONResponse(
+            status_code=502,
+            content={
+                "success": False,
+                "response": error_msg,
+                "error": str(e)
+            }
+        )
 
-# Rodar o servidor localmente (para desenvolvimento)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=PORT)
